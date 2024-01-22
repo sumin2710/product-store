@@ -2,11 +2,11 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const MONGO_URL = process.env.MONGO_URL;
-console.log(typeof MONGO_URL);
+//const MONGO_URL = process.env.MONGO_URL;
+
 const connect = () => {
   mongoose
-    .connect(MONGO_URL, {
+    .connect(process.env.MONGO_URL, {
       dbName: 'product_store',
     })
     .then(() => console.log('MongoDB 연결에 성공하였습니다.'))
