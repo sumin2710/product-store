@@ -7,7 +7,7 @@ dotenv.config();
 const connect = () => {
   mongoose
     .connect(process.env.MONGO_URL, {
-      dbName: 'product_store',
+      dbName: 'product-store',
     })
     .then(() => console.log('MongoDB 연결에 성공하였습니다.'))
     .catch((err) => console.log(`MongoDB 연결에 실패하였습니다. ${err}`));
