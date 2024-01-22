@@ -60,7 +60,7 @@ router.post('/product', async (req, res, next) => {
 // 상품 목록 조회 API
 router.get('/product', async (req, res, next) => {
   const products = await Product.find()
-    .select('title author status createdAt')
+    .select('title author status createdAt pid')
     .sort('-createdAt')
     .exec();
   return res.status(200).json({ products });
@@ -83,6 +83,7 @@ router.get('/product/:productId', async (req, res, next) => {
     status: searchedProduct.status,
     createdAt: searchedProduct.createdAt,
     price: searchedProduct.price,
+    pid: searchedProduct.pid,
   });
 });
 

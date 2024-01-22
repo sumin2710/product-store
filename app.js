@@ -1,6 +1,7 @@
 import express from 'express';
 import connect from './schemas/index.js';
 import ProductRouter from './routes/product.router.js';
+import errorHandlerMiddleware from './middlewares/error-handler.middleware.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -17,10 +18,12 @@ app.use(express.static('./assets'));
 const router = express.Router();
 
 router.get('/', (req, res) => {
-  return res.status(200).json({ message: 'start!' });
+  return res.json({ message: 'start!' });
 });
 
 app.use('/api', [router, ProductRouter]);
+
+app.use(errorHandlerMiddleware);
 
 app.listen(PORT, () => {
   console.log('서버가 열렸어요.');
