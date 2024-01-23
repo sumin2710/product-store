@@ -18,7 +18,7 @@ app.use(express.static('./assets'));
 const router = express.Router();
 
 router.get('/', (req, res) => {
-  return res.json({ message: 'start!' });
+  return res.json({ message: 'Start!' });
 });
 
 app.use('/api', [router, ProductRouter]);

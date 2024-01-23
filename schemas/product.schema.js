@@ -19,11 +19,12 @@ const ProductSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    required: true,
+    enum: ['FOR_SALE', 'SOLD_OUT'],
+    default: 'FOR_SALE',
   },
   createdAt: {
     type: Date,
-    required: true,
+    default: Date.now, // 현재 시간 디폴트
   },
   price: {
     type: Number,
@@ -34,6 +35,7 @@ const ProductSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
+  //{timestamps:true}
 });
 
 // ProductSchema.virtual('productId').get(function () {

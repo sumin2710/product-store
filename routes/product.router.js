@@ -13,7 +13,7 @@ const createdProductSchema = joi.object({
     .required()
     .messages({
       'string.pattern.base': `비밀번호는 3-30자의 숫자와 영문자로 이루어지며 특수문자를 최소 한 자 이상 포함해야 합니다.`,
-      'string.empty': `공백이나 빈 문자열은 비밀번호가 될 수 없습니다.`,
+      'string.empty': `빈 문자열은 비밀번호가 될 수 없습니다.`,
       'any.required': `비밀번호는 필수 입력사항입니다.`,
     }),
   content: joi.string().min(1).max(50).required(),
@@ -31,6 +31,11 @@ const editedProductSchema = joi.object({
 // 상품 작성 API
 router.post('/product', async (req, res, next) => {
   try {
+    if (!req.body) {
+      return res
+        .status(400)
+        .json({ errorMessage: '데이터 형식이 올바르지 않습니다.' });
+    }
     const validation = await createdProductSchema.validateAsync(req.body);
     const { title, author, password, content, price } = validation;
 
@@ -44,14 +49,14 @@ router.post('/product', async (req, res, next) => {
       password,
       content,
       price,
-      status: 'FOR_SALE',
-      createdAt: new Date(),
       pid: newPid,
     });
     await newProduct.save();
 
     // 클라이언트에게 반환
-    return res.status(201).json({ product: newProduct });
+    return res
+      .status(201)
+      .json({ product: newProduct, message: '판매 상품을 등록하였습니다.' });
   } catch (err) {
     next(err);
   }
@@ -59,37 +64,44 @@ router.post('/product', async (req, res, next) => {
 
 // 상품 목록 조회 API
 router.get('/product', async (req, res, next) => {
-  const products = await Product.find()
-    .select('title author status createdAt pid')
-    .sort('-createdAt')
-    .exec();
-  return res.status(200).json({ products });
+  try {
+    const products = await Product.find()
+      .select('title author status createdAt pid')
+      .sort('-createdAt')
+      .exec();
+    return res.status(200).json({ products });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // 상품 상세 조회 API
 router.get('/product/:productId', async (req, res, next) => {
-  const { productId } = req.params;
-  const searchedProduct = await Product.findOne({ pid: productId }).exec(); //await Product.findById(productId).exec();
+  try {
+    const { productId } = req.params;
+    const searchedProduct = await Product.findOne({ pid: productId })
+      .select('title author content status createdAt price pid')
+      .exec();
 
-  if (!searchedProduct) {
-    return res
-      .status(404)
-      .json({ errorMessage: '상품 조회에 실패하였습니다.' });
+    if (!searchedProduct) {
+      return res
+        .status(404)
+        .json({ errorMessage: '상품 조회에 실패하였습니다.' });
+    }
+    return res.status(201).json({ searchedProduct });
+  } catch (err) {
+    next(err);
   }
-  return res.status(201).json({
-    title: searchedProduct.title,
-    author: searchedProduct.author,
-    content: searchedProduct.content,
-    status: searchedProduct.status,
-    createdAt: searchedProduct.createdAt,
-    price: searchedProduct.price,
-    pid: searchedProduct.pid,
-  });
 });
 
 // 상품 정보 수정 API
 router.patch('/product/:productId', async (req, res, next) => {
   try {
+    if (!req.body || !req.params) {
+      return res
+        .status(400)
+        .json({ errorMessage: '데이터 형식이 올바르지 않습니다.' });
+    }
     const { productId } = req.params;
     const validation = await editedProductSchema.validateAsync(req.body);
     const { title, content, status, price, password } = validation;
@@ -101,7 +113,9 @@ router.patch('/product/:productId', async (req, res, next) => {
         .json({ errorMessage: '상품 조회에 실패하였습니다.' });
     }
     if (currentProduct.password != password) {
-      return res.status(400).json({ errorMessage: '잘못된 비밀번호입니다.' });
+      return res
+        .status(401)
+        .json({ errorMessage: '상품을 수정할 권한이 존재하지 않습니다.' });
     }
 
     // 수정하기
@@ -110,7 +124,9 @@ router.patch('/product/:productId', async (req, res, next) => {
     currentProduct.status = status;
     currentProduct.price = price;
     await currentProduct.save();
-    return res.status(200).json({ currentProduct });
+    return res
+      .status(200)
+      .json({ currentProduct, message: '상품 정보를 수정하였습니다.' });
   } catch (err) {
     next(err);
   }
@@ -118,27 +134,38 @@ router.patch('/product/:productId', async (req, res, next) => {
 
 // 상품 삭제 API
 router.delete('/product/:productId', async (req, res, next) => {
-  const { productId } = req.params;
-  const { password } = req.body;
+  try {
+    if (!req.body || !req.params) {
+      return res
+        .status(400)
+        .json({ errorMessage: '데이터 형식이 올바르지 않습니다.' });
+    }
+    const { productId } = req.params;
+    const { password } = req.body;
 
-  const currentProduct = await Product.findOne({ pid: productId }).exec();
-  if (!currentProduct) {
-    return res
-      .status(404)
-      .json({ errorMessage: '상품 조회에 실패하였습니다.' });
-  }
-  if (currentProduct.password != password) {
-    return res.status(400).json({ errorMessage: '잘못된 비밀번호입니다.' });
-  }
+    const currentProduct = await Product.findOne({ pid: productId }).exec();
+    if (!currentProduct) {
+      return res
+        .status(404)
+        .json({ errorMessage: '상품 조회에 실패하였습니다.' });
+    }
+    if (currentProduct.password != password) {
+      return res
+        .status(401)
+        .json({ errorMessage: '상품을 삭제할 권한이 존재하지 않습니다.' });
+    }
 
-  await Product.deleteOne({ pid: productId });
-  return res.status(200).json({});
+    await Product.deleteOne({ pid: productId });
+    return res.status(200).json({ message: '상품을 삭제하였습니다.' });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // 임시 - 전부 삭제 API
-router.delete('/product', async (req, res) => {
-  await Product.deleteMany().exec();
-  return res.status(200).json({});
-});
+// router.delete('/product', async (req, res) => {
+//   await Product.deleteMany().exec();
+//   return res.status(200).json({});
+// });
 
 export default router;
