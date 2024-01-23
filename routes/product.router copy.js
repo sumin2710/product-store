@@ -32,7 +32,7 @@ const editedProductSchema = joi.object({
 router.post('/product', async (req, res, next) => {
   try {
     if (!req.body) {
-      throw 401;
+      throw 400;
     }
     const validation = await createdProductSchema.validateAsync(req.body);
     const { title, author, password, content, price } = validation;
@@ -94,7 +94,7 @@ router.get('/product/:productId', async (req, res, next) => {
 router.patch('/product/:productId', async (req, res, next) => {
   try {
     if (!req.body || !req.params) {
-      throw new SyntaxError('데이터 형식이 올바르지 않습니다.');
+      throw 400;
     }
     const { productId } = req.params;
     const validation = await editedProductSchema.validateAsync(req.body);
@@ -102,14 +102,10 @@ router.patch('/product/:productId', async (req, res, next) => {
 
     const currentProduct = await Product.findOne({ pid: productId }).exec();
     if (!currentProduct) {
-      return res
-        .status(404)
-        .json({ errorMessage: '상품 조회에 실패하였습니다.' });
+      throw 404;
     }
     if (currentProduct.password != password) {
-      return res
-        .status(401)
-        .json({ errorMessage: '상품을 수정할 권한이 존재하지 않습니다.' });
+      return 401;
     }
 
     // 수정하기
@@ -130,23 +126,17 @@ router.patch('/product/:productId', async (req, res, next) => {
 router.delete('/product/:productId', async (req, res, next) => {
   try {
     if (!req.body || !req.params) {
-      return res
-        .status(400)
-        .json({ errorMessage: '데이터 형식이 올바르지 않습니다.' });
+      throw 400;
     }
     const { productId } = req.params;
     const { password } = req.body;
 
     const currentProduct = await Product.findOne({ pid: productId }).exec();
     if (!currentProduct) {
-      return res
-        .status(404)
-        .json({ errorMessage: '상품 조회에 실패하였습니다.' });
+      throw 404;
     }
     if (currentProduct.password != password) {
-      return res
-        .status(401)
-        .json({ errorMessage: '상품을 삭제할 권한이 존재하지 않습니다.' });
+      return 401;
     }
 
     await Product.deleteOne({ pid: productId });
